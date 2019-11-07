@@ -9,6 +9,7 @@ import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.text.format.Formatter;
 import android.util.Log;
 
@@ -40,11 +41,17 @@ public class RemoteControlService extends Service {
     Handler mHandler;
     private TcpServer mTcpServer;
     private UdpBroadcaster mUdpBroadcaster;
+    private PowerManager.WakeLock mWakeLock;
 
     @Override
     public void onCreate() {
         super.onCreate();
         mHandler = new Handler();
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        mWakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK,
+                "com.google.android.apps.location.gps.gnsslogger:RemoteControl");
+        if( mWakeLock != null)
+            mWakeLock.acquire();
     }
 
     public RemoteControlService() {
@@ -270,6 +277,10 @@ public class RemoteControlService extends Service {
         if ( mUdpBroadcaster != null ) {
             mUdpBroadcaster.shutdown();
         }
+
+        if( mWakeLock != null)
+            mWakeLock.release();
+
         pool.shutdown();
     }
 }
