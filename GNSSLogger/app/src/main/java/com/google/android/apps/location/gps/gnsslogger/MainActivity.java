@@ -69,19 +69,23 @@ public class MainActivity extends AppCompatActivity
   private static final int FRAGMENT_INDEX_AGNSS = 4;
   private static final int FRAGMENT_INDEX_PLOT = 5;
   private static final String TAG = "MainActivity";
+  private static final boolean D = true;
 
   private GnssContainer mGnssContainer;
   private UiLogger mUiLogger;
   private RealTimePositionVelocityCalculator mRealTimePositionVelocityCalculator;
   private FileLogger mFileLogger;
   private AgnssUiLogger mAgnssUiLogger;
+
+  private RemoteControlService mRemoteControlService;
+
   private Fragment[] mFragments;
   private GoogleApiClient mGoogleApiClient;
   private boolean mAutoSwitchGroundTruthMode;
   private final ActivityDetectionBroadcastReceiver mBroadcastReceiver =
       new ActivityDetectionBroadcastReceiver();
 
-  private ServiceConnection mConnection =
+  private ServiceConnection mTimerServiceConnection =
       new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder serviceBinder) {
@@ -94,11 +98,43 @@ public class MainActivity extends AppCompatActivity
         }
       };
 
+  private ServiceConnection mRemoteControlServiceServiceConnection =
+      new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder serviceBinder) {
+          mRemoteControlService = ((RemoteControlService.RemoteControlBinder) serviceBinder).getService();
+          if(D) Log.d(TAG, "Remote control service is connected");
+
+          if ( mGnssContainer != null) {
+            ConnectComponenetsToRemoteControllerService();
+          }else{
+            if(D)Log.d(TAG, "mGnssContainer is not ready for RemoteControlService connection");
+          }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName className) {
+          mRemoteControlService = null;
+        }
+      };
+
+  private void ConnectComponenetsToRemoteControllerService() {
+    if (D)Log.d(TAG, "Components are connected to Remote controller");
+    mRemoteControlService.setGpsContainer(mGnssContainer);
+    mRemoteControlService.setFileLogger(mFileLogger);
+  }
+
   @Override
   protected void onStart() {
     super.onStart();
     // Bind to the timer service to ensure it is available when app is running
-    bindService(new Intent(this, TimerService.class), mConnection, Context.BIND_AUTO_CREATE);
+    bindService(new Intent(this, TimerService.class),
+            mTimerServiceConnection, Context.BIND_AUTO_CREATE);
+
+    // Bind to the remote controller service to ensure it is available when app is running
+    bindService(new Intent(this, RemoteControlService.class),
+            mRemoteControlServiceServiceConnection, Context.BIND_AUTO_CREATE);
+
   }
 
   @Override
@@ -119,7 +155,8 @@ public class MainActivity extends AppCompatActivity
   @Override
   protected void onStop() {
     super.onStop();
-    unbindService(mConnection);
+    unbindService(mTimerServiceConnection);
+    unbindService(mRemoteControlServiceServiceConnection);
   }
 
   @Override
@@ -264,6 +301,11 @@ public class MainActivity extends AppCompatActivity
             mFileLogger,
             mRealTimePositionVelocityCalculator,
             mAgnssUiLogger);
+    if ( mRemoteControlService != null ){
+      ConnectComponenetsToRemoteControllerService();
+    }else{
+      if(D)Log.d(TAG, "RemoteControlService is not ready for connection");
+    }
     mFragments = new Fragment[NUMBER_OF_FRAGMENTS];
     SettingsFragment settingsFragment = new SettingsFragment();
     settingsFragment.setGpsContainer(mGnssContainer);
