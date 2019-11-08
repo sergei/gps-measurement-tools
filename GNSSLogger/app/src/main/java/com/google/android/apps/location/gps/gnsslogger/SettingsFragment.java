@@ -17,12 +17,16 @@
 package com.google.android.apps.location.gps.gnsslogger;
 
 import android.app.Fragment;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Gravity;
@@ -49,6 +53,7 @@ import java.lang.reflect.InvocationTargetException;
 public class SettingsFragment extends Fragment {
 
   public static final String TAG = ":SettingsFragment";
+  private static final boolean D = true;
 
   /** Position in the drop down menu of the auto ground truth mode */
   private static int AUTO_GROUND_TRUTH_MODE = 3;
@@ -57,6 +62,7 @@ public class SettingsFragment extends Fragment {
   protected static String PREFERENCE_KEY_AUTO_SCROLL =  "autoScroll";
 
   private GnssContainer mGpsContainer;
+  private FileLogger mFileLogger;
   private HelpDialog helpDialog;
 
   /**
@@ -70,7 +76,31 @@ public class SettingsFragment extends Fragment {
   /** The reference ground truth location by user input. */
   private double[] mFixedReferenceLocation = null;
 
-  /** {@link GroundTruthModeSwitcher} to receive update from AR result broadcast */
+    private RemoteControlService mRemoteControlService;
+
+    private ServiceConnection mRemoteControlServiceServiceConnection =
+            new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName className, IBinder serviceBinder) {
+                    mRemoteControlService = ((RemoteControlService.RemoteControlBinder) serviceBinder).getService();
+                    if(D) Log.d(TAG, "Remote control service is connected");
+
+                    if ( mGpsContainer != null) {
+                        ConnectComponenetsToRemoteControllerService();
+                    }else{
+                        if(D)Log.d(TAG, "mGnssContainer is not ready for RemoteControlService connection");
+                    }
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName className) {
+                    mRemoteControlService = null;
+                }
+            };
+
+
+
+    /** {@link GroundTruthModeSwitcher} to receive update from AR result broadcast */
   private GroundTruthModeSwitcher mModeSwitcher;
 
   public void setGpsContainer(GnssContainer value) {
@@ -177,6 +207,28 @@ public class SettingsFragment extends Fragment {
             } else {
               mGpsContainer.unregisterGpsStatus();
               registerGpsStatusLabel.setText("Switch is OFF");
+            }
+          }
+        });
+
+    final Switch remoteControlStatus = (Switch) view.findViewById(R.id.remote_control_enabled);
+    final TextView remoteControlStatusLabel =
+        (TextView) view.findViewById(R.id.turn_on_remote_control);
+    //set the switch to OFF
+      remoteControlStatus.setChecked(false);
+      remoteControlStatusLabel.setText("Switch is OFF");
+      remoteControlStatus.setOnCheckedChangeListener(
+        new OnCheckedChangeListener() {
+
+          @Override
+          public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+            if (isChecked) {
+                enableRemoteControl(true);
+                remoteControlStatusLabel.setText("Switch is ON");
+            } else {
+                enableRemoteControl(false);
+                remoteControlStatusLabel.setText("Switch is OFF");
             }
           }
         });
@@ -385,8 +437,30 @@ public class SettingsFragment extends Fragment {
     return view;
   }
 
-  private void logException(String errorMessage, Exception e) {
+    private void ConnectComponenetsToRemoteControllerService() {
+        if (D)Log.d(TAG, "Components are connected to Remote controller");
+        mRemoteControlService.setGpsContainer(mGpsContainer);
+        mRemoteControlService.setFileLogger(mFileLogger);
+    }
+
+
+    private void enableRemoteControl(boolean enable) {
+      if ( enable ){
+          // Bind to the remote controller service to ensure it is available when app is running
+          getActivity().bindService(new Intent(getActivity(), RemoteControlService.class),
+                  mRemoteControlServiceServiceConnection, Context.BIND_AUTO_CREATE);
+      }else{
+          getActivity().unbindService(mRemoteControlServiceServiceConnection);
+
+      }
+    }
+
+    private void logException(String errorMessage, Exception e) {
     Log.e(GnssContainer.TAG + TAG, errorMessage, e);
     Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
   }
+
+    public void setFileLogger(FileLogger fileLogger) {
+        mFileLogger = fileLogger;
+    }
 }
