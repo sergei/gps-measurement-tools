@@ -17,9 +17,11 @@
 package com.google.android.apps.location.gps.gnsslogger;
 
 import android.app.Fragment;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
@@ -28,6 +30,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -46,6 +49,8 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.lang.reflect.InvocationTargetException;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * The UI fragment showing a set of configurable settings for the client to request GPS data.
@@ -78,6 +83,18 @@ public class SettingsFragment extends Fragment {
 
     private RemoteControlService mRemoteControlService;
 
+    private final BroadcastReceiver mIpBroadcastReceiver =
+            new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    checkArgument(intent != null, "Intent is null");
+
+                    String  ipAddr = intent.getStringExtra(RemoteControlService.IP_ADDR_EXTRA);
+                    mRemoteControlStatusLabel.setText(ipAddr);
+                }
+            };
+
+
     private ServiceConnection mRemoteControlServiceServiceConnection =
             new ServiceConnection() {
                 @Override
@@ -102,8 +119,9 @@ public class SettingsFragment extends Fragment {
 
     /** {@link GroundTruthModeSwitcher} to receive update from AR result broadcast */
   private GroundTruthModeSwitcher mModeSwitcher;
+    private TextView mRemoteControlStatusLabel;
 
-  public void setGpsContainer(GnssContainer value) {
+    public void setGpsContainer(GnssContainer value) {
     mGpsContainer = value;
   }
 
@@ -212,11 +230,10 @@ public class SettingsFragment extends Fragment {
         });
 
     final Switch remoteControlStatus = (Switch) view.findViewById(R.id.remote_control_enabled);
-    final TextView remoteControlStatusLabel =
-        (TextView) view.findViewById(R.id.turn_on_remote_control);
+      mRemoteControlStatusLabel = (TextView) view.findViewById(R.id.turn_on_remote_control);
     //set the switch to OFF
       remoteControlStatus.setChecked(false);
-      remoteControlStatusLabel.setText("Switch is OFF");
+      mRemoteControlStatusLabel.setText("Switch is OFF");
       remoteControlStatus.setOnCheckedChangeListener(
         new OnCheckedChangeListener() {
 
@@ -225,10 +242,10 @@ public class SettingsFragment extends Fragment {
 
             if (isChecked) {
                 enableRemoteControl(true);
-                remoteControlStatusLabel.setText("Switch is ON");
+                mRemoteControlStatusLabel.setText("IP ....");
             } else {
                 enableRemoteControl(false);
-                remoteControlStatusLabel.setText("Switch is OFF");
+                mRemoteControlStatusLabel.setText("Switch is OFF");
             }
           }
         });
@@ -463,4 +480,19 @@ public class SettingsFragment extends Fragment {
     public void setFileLogger(FileLogger fileLogger) {
         mFileLogger = fileLogger;
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(getActivity())
+                .registerReceiver(mIpBroadcastReceiver, new IntentFilter(RemoteControlService.IP_ACTION));
+    }
+
+    @Override
+    public void onPause() {
+        LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mIpBroadcastReceiver);
+        super.onPause();
+    }
+
+
 }

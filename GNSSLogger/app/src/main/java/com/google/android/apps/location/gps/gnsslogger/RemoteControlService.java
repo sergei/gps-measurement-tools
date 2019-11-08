@@ -10,6 +10,7 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.format.Formatter;
 import android.util.Log;
 
@@ -25,13 +26,22 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class RemoteControlService extends Service {
-    static final int NOTIFICATION_ID = 8888;
     private static final String TAG = "RemoteControlService";
     private static final boolean D = true;
+
+    public static final int TCP_LISTEN_PORT = 3322;
+    public static final int UDP_BROADCAST_PORT = 1122;
+
+    public static final String IP_ADDR_EXTRA = "IP_ADDR_EXTRA";
+    public static final String IP_ACTION = String.format("%s.IP_ACTION",
+            RemoteControlService.class.getPackage().getName());
+
+    static final int NOTIFICATION_ID = 8888;
 
     private final IBinder mBinder = new RemoteControlBinder();
 
@@ -99,7 +109,13 @@ public class RemoteControlService extends Service {
             while ( mKeepRunning ) {
                 WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
                 String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-                String msg = String.format("Broadcasting  IP address %s", ip);
+
+                Intent broadcast = new Intent(IP_ACTION);
+                broadcast.putExtra(IP_ADDR_EXTRA, String.format(Locale.getDefault(),
+                        "%s:%d", ip,TCP_LISTEN_PORT));
+                LocalBroadcastManager.getInstance(RemoteControlService.this).sendBroadcast(broadcast);
+
+                String msg = String.format(Locale.US, "ip,%s,port,%d", ip,TCP_LISTEN_PORT);
                 if (D) Log.d(TAG, msg);
 
                 try {
@@ -245,14 +261,12 @@ public class RemoteControlService extends Service {
         startForeground(NOTIFICATION_ID, notification);
 
         // Start UDP broadcaster
-        int udpBroadcastPort = 1122;
-        mUdpBroadcaster = new UdpBroadcaster(udpBroadcastPort);
+        mUdpBroadcaster = new UdpBroadcaster(UDP_BROADCAST_PORT);
         pool.execute(mUdpBroadcaster);
 
         // Start TCP server
-        int tcpListenPort = 3322;
         try {
-            mTcpServer = new TcpServer(tcpListenPort);
+            mTcpServer = new TcpServer(TCP_LISTEN_PORT);
             pool.execute(mTcpServer);
         } catch (IOException e) {
             e.printStackTrace();
