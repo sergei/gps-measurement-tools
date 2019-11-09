@@ -230,6 +230,20 @@ public class FileLogger implements GnssListener {
     }
   }
 
+  File stopCurrentLog(){
+
+    if (mFileWriter != null) {
+      try {
+        mFileWriter.flush();
+        mFileWriter.close();
+        mFileWriter = null;
+      } catch (IOException e) {
+        return null;
+      }
+    }
+    return mFile;
+  }
+
   @Override
   public void onProviderEnabled(String provider) {}
 

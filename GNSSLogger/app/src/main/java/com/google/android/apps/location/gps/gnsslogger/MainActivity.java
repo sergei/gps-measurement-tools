@@ -69,19 +69,22 @@ public class MainActivity extends AppCompatActivity
   private static final int FRAGMENT_INDEX_AGNSS = 4;
   private static final int FRAGMENT_INDEX_PLOT = 5;
   private static final String TAG = "MainActivity";
+  private static final boolean D = true;
 
   private GnssContainer mGnssContainer;
   private UiLogger mUiLogger;
   private RealTimePositionVelocityCalculator mRealTimePositionVelocityCalculator;
   private FileLogger mFileLogger;
   private AgnssUiLogger mAgnssUiLogger;
+
+
   private Fragment[] mFragments;
   private GoogleApiClient mGoogleApiClient;
   private boolean mAutoSwitchGroundTruthMode;
   private final ActivityDetectionBroadcastReceiver mBroadcastReceiver =
       new ActivityDetectionBroadcastReceiver();
 
-  private ServiceConnection mConnection =
+  private ServiceConnection mTimerServiceConnection =
       new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder serviceBinder) {
@@ -98,7 +101,8 @@ public class MainActivity extends AppCompatActivity
   protected void onStart() {
     super.onStart();
     // Bind to the timer service to ensure it is available when app is running
-    bindService(new Intent(this, TimerService.class), mConnection, Context.BIND_AUTO_CREATE);
+    bindService(new Intent(this, TimerService.class),
+            mTimerServiceConnection, Context.BIND_AUTO_CREATE);
   }
 
   @Override
@@ -119,7 +123,7 @@ public class MainActivity extends AppCompatActivity
   @Override
   protected void onStop() {
     super.onStop();
-    unbindService(mConnection);
+    unbindService(mTimerServiceConnection);
   }
 
   @Override
@@ -264,11 +268,13 @@ public class MainActivity extends AppCompatActivity
             mFileLogger,
             mRealTimePositionVelocityCalculator,
             mAgnssUiLogger);
+
     mFragments = new Fragment[NUMBER_OF_FRAGMENTS];
     SettingsFragment settingsFragment = new SettingsFragment();
     settingsFragment.setGpsContainer(mGnssContainer);
     settingsFragment.setRealTimePositionVelocityCalculator(mRealTimePositionVelocityCalculator);
     settingsFragment.setAutoModeSwitcher(this);
+    settingsFragment.setFileLogger(mFileLogger);
     mFragments[FRAGMENT_INDEX_SETTING] = settingsFragment;
 
     LoggerFragment loggerFragment = new LoggerFragment();

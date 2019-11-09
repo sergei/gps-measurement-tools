@@ -158,6 +158,27 @@
         android:text="@string/residual_plot" />
   </LinearLayout>
 
+  <LinearLayout
+      android:orientation="horizontal"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content">
+    <TextView
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:layout_marginTop="15dp"
+        android:id="@+id/turn_on_remote_control" />
+    <Switch
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:id="@+id/remote_control_enabled"
+        android:singleLine="true"
+        android:layout_marginTop="15dp"
+        android:text="@string/remote_control" />
+  </LinearLayout>
+
   <RelativeLayout
       android:layout_width="match_parent"
       android:layout_height="wrap_content"

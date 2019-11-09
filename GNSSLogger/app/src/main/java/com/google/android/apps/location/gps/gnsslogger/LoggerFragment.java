@@ -126,6 +126,12 @@ public class LoggerFragment extends Fragment implements TimerListener {
   }
 
   @Override
+  public void onDestroyView() {
+    super.onDestroyView();
+    getActivity().unbindService(mConnection);
+  }
+
+  @Override
   public View onCreateView(
       LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
     View newView = inflater.inflate(R.layout.fragment_log, container, false /* attachToRoot */);

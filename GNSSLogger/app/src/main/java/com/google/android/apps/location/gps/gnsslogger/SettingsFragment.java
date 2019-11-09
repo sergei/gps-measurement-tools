@@ -17,13 +17,20 @@
 package com.google.android.apps.location.gps.gnsslogger;
 
 import android.app.Fragment;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -43,12 +50,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 import java.lang.reflect.InvocationTargetException;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * The UI fragment showing a set of configurable settings for the client to request GPS data.
  */
 public class SettingsFragment extends Fragment {
 
   public static final String TAG = ":SettingsFragment";
+  private static final boolean D = true;
 
   /** Position in the drop down menu of the auto ground truth mode */
   private static int AUTO_GROUND_TRUTH_MODE = 3;
@@ -57,6 +67,7 @@ public class SettingsFragment extends Fragment {
   protected static String PREFERENCE_KEY_AUTO_SCROLL =  "autoScroll";
 
   private GnssContainer mGpsContainer;
+  private FileLogger mFileLogger;
   private HelpDialog helpDialog;
 
   /**
@@ -70,10 +81,47 @@ public class SettingsFragment extends Fragment {
   /** The reference ground truth location by user input. */
   private double[] mFixedReferenceLocation = null;
 
-  /** {@link GroundTruthModeSwitcher} to receive update from AR result broadcast */
-  private GroundTruthModeSwitcher mModeSwitcher;
+    private RemoteControlService mRemoteControlService;
 
-  public void setGpsContainer(GnssContainer value) {
+    private final BroadcastReceiver mIpBroadcastReceiver =
+            new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    checkArgument(intent != null, "Intent is null");
+
+                    String  ipAddr = intent.getStringExtra(RemoteControlService.IP_ADDR_EXTRA);
+                    mRemoteControlStatusLabel.setText(ipAddr);
+                }
+            };
+
+
+    private ServiceConnection mRemoteControlServiceServiceConnection =
+            new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName className, IBinder serviceBinder) {
+                    mRemoteControlService = ((RemoteControlService.RemoteControlBinder) serviceBinder).getService();
+                    if(D) Log.d(TAG, "Remote control service is connected");
+
+                    if ( mGpsContainer != null) {
+                        ConnectComponenetsToRemoteControllerService();
+                    }else{
+                        if(D)Log.d(TAG, "mGnssContainer is not ready for RemoteControlService connection");
+                    }
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName className) {
+                    mRemoteControlService = null;
+                }
+            };
+
+
+
+    /** {@link GroundTruthModeSwitcher} to receive update from AR result broadcast */
+  private GroundTruthModeSwitcher mModeSwitcher;
+    private TextView mRemoteControlStatusLabel;
+
+    public void setGpsContainer(GnssContainer value) {
     mGpsContainer = value;
   }
 
@@ -177,6 +225,27 @@ public class SettingsFragment extends Fragment {
             } else {
               mGpsContainer.unregisterGpsStatus();
               registerGpsStatusLabel.setText("Switch is OFF");
+            }
+          }
+        });
+
+    final Switch remoteControlStatus = (Switch) view.findViewById(R.id.remote_control_enabled);
+      mRemoteControlStatusLabel = (TextView) view.findViewById(R.id.turn_on_remote_control);
+    //set the switch to OFF
+      remoteControlStatus.setChecked(false);
+      mRemoteControlStatusLabel.setText("Switch is OFF");
+      remoteControlStatus.setOnCheckedChangeListener(
+        new OnCheckedChangeListener() {
+
+          @Override
+          public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+            if (isChecked) {
+                enableRemoteControl(true);
+                mRemoteControlStatusLabel.setText("IP ....");
+            } else {
+                enableRemoteControl(false);
+                mRemoteControlStatusLabel.setText("Switch is OFF");
             }
           }
         });
@@ -385,8 +454,45 @@ public class SettingsFragment extends Fragment {
     return view;
   }
 
-  private void logException(String errorMessage, Exception e) {
+    private void ConnectComponenetsToRemoteControllerService() {
+        if (D)Log.d(TAG, "Components are connected to Remote controller");
+        mRemoteControlService.setGpsContainer(mGpsContainer);
+        mRemoteControlService.setFileLogger(mFileLogger);
+    }
+
+
+    private void enableRemoteControl(boolean enable) {
+      if ( enable ){
+          // Bind to the remote controller service to ensure it is available when app is running
+          getActivity().bindService(new Intent(getActivity(), RemoteControlService.class),
+                  mRemoteControlServiceServiceConnection, Context.BIND_AUTO_CREATE);
+      }else{
+          getActivity().unbindService(mRemoteControlServiceServiceConnection);
+
+      }
+    }
+
+    private void logException(String errorMessage, Exception e) {
     Log.e(GnssContainer.TAG + TAG, errorMessage, e);
     Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
   }
+
+    public void setFileLogger(FileLogger fileLogger) {
+        mFileLogger = fileLogger;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(getActivity())
+                .registerReceiver(mIpBroadcastReceiver, new IntentFilter(RemoteControlService.IP_ACTION));
+    }
+
+    @Override
+    public void onPause() {
+        LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mIpBroadcastReceiver);
+        super.onPause();
+    }
+
+
 }
