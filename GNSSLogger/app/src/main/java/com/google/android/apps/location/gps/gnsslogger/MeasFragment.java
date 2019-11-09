@@ -3,9 +3,11 @@ package com.google.android.apps.location.gps.gnsslogger;
 import android.app.Activity;
 import android.app.Fragment;
 import android.graphics.Typeface;
+import android.location.GnssClock;
 import android.location.GnssMeasurement;
 import android.location.GnssMeasurementsEvent;
 import android.location.GnssStatus;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
@@ -20,6 +22,8 @@ import java.util.Locale;
 public class MeasFragment extends Fragment {
     private MeasLogger mMeasLogger;
     private TableLayout mMeasTable;
+    private TextView mClockOffsetTextView;
+    private TextView mAgcTextView;
     public static final int  MAX_SVS = 32;
     private static final double SPEED_OF_LIGHT_MPS = 299792458.0;
 
@@ -32,6 +36,9 @@ public class MeasFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
         View fragmentView = inflater.inflate(R.layout.fragment_meas, container, false /* attachToRoot */);
         mMeasTable = fragmentView.findViewById(R.id.tblMeas);
+        mClockOffsetTextView = fragmentView.findViewById(R.id.clock_offset_ppb);
+        mAgcTextView = fragmentView.findViewById(R.id.agc);
+
         for( int i =0; i < MAX_SVS; i++){
             TableRow row = (TableRow) inflater.inflate(R.layout.meas_table_row, mMeasTable, false);
             if ( i == 0){
@@ -69,6 +76,24 @@ public class MeasFragment extends Fragment {
     }
 
     private void showMeasurement(GnssMeasurementsEvent event) {
+        // Show clock
+        GnssClock clock = event.getClock();
+        if ( clock.hasDriftNanosPerSecond() ){
+            mClockOffsetTextView.setText(String.format(Locale.getDefault(),"%d",
+                    (int)clock.getDriftNanosPerSecond()));
+        }
+
+        // Show AGC
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            for (GnssMeasurement meas : event.getMeasurements() ) {
+                if (meas.hasAutomaticGainControlLevelDb()){
+                    double agc = meas.getAutomaticGainControlLevelDb();
+                    mAgcTextView.setText(String.format(Locale.getDefault(),"%.1f", agc));
+                    break;
+                }
+            }
+        }
+
         // Remove data from the previous epoch
         for(int i = 1; i <  mMeasTable.getChildCount(); i++){
             TableRow row = (TableRow) mMeasTable.getChildAt(i);

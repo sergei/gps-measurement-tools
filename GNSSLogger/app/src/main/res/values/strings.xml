@@ -64,6 +64,9 @@
     <string name="unc">unc</string>
     <string name="rate_ppb">Rate ppb</string>
     <string name="unc_ppb">unc ppb</string>
+    <string name="clock_ppb">Clock (ppb)</string>
+    <string name="agc_db">AGC dB</string>
+    <string name="unk">---</string>
     <string-array name="constellation_arrays">
         <item>All</item>
         <item>GPS</item>
