@@ -61,13 +61,14 @@ public class MainActivity extends AppCompatActivity
   private static final String[] REQUIRED_PERMISSIONS = {
     Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.WRITE_EXTERNAL_STORAGE
   };
-  private static final int NUMBER_OF_FRAGMENTS = 6;
+  private static final int NUMBER_OF_FRAGMENTS = 7;
   private static final int FRAGMENT_INDEX_SETTING = 0;
   private static final int FRAGMENT_INDEX_LOGGER = 1;
   private static final int FRAGMENT_INDEX_RESULT = 2;
   private static final int FRAGMENT_INDEX_MAP = 3;
   private static final int FRAGMENT_INDEX_AGNSS = 4;
   private static final int FRAGMENT_INDEX_PLOT = 5;
+  private static final int FRAGMENT_INDEX_MEAS = 6;
   private static final String TAG = "MainActivity";
   private static final boolean D = true;
 
@@ -76,7 +77,7 @@ public class MainActivity extends AppCompatActivity
   private RealTimePositionVelocityCalculator mRealTimePositionVelocityCalculator;
   private FileLogger mFileLogger;
   private AgnssUiLogger mAgnssUiLogger;
-
+  private MeasLogger mMeasLogger;
 
   private Fragment[] mFragments;
   private GoogleApiClient mGoogleApiClient;
@@ -208,6 +209,8 @@ public class MainActivity extends AppCompatActivity
           return mFragments[FRAGMENT_INDEX_AGNSS];
         case FRAGMENT_INDEX_PLOT:
           return mFragments[FRAGMENT_INDEX_PLOT];
+        case FRAGMENT_INDEX_MEAS:
+          return mFragments[FRAGMENT_INDEX_MEAS];
         default:
           throw new IllegalArgumentException("Invalid section: " + position);
       }
@@ -235,6 +238,8 @@ public class MainActivity extends AppCompatActivity
           return getString(R.string.title_agnss).toUpperCase(locale);
         case FRAGMENT_INDEX_PLOT:
           return getString(R.string.title_plot).toLowerCase(locale);
+        case FRAGMENT_INDEX_MEAS:
+          return getString(R.string.title_meas).toLowerCase(locale);
         default:
           return super.getPageTitle(position);
       }
@@ -261,13 +266,15 @@ public class MainActivity extends AppCompatActivity
 
     mFileLogger = new FileLogger(getApplicationContext());
     mAgnssUiLogger = new AgnssUiLogger();
+    mMeasLogger = new MeasLogger();
     mGnssContainer =
         new GnssContainer(
             getApplicationContext(),
             mUiLogger,
             mFileLogger,
             mRealTimePositionVelocityCalculator,
-            mAgnssUiLogger);
+            mAgnssUiLogger,
+            mMeasLogger);
 
     mFragments = new Fragment[NUMBER_OF_FRAGMENTS];
     SettingsFragment settingsFragment = new SettingsFragment();
@@ -298,6 +305,11 @@ public class MainActivity extends AppCompatActivity
     PlotFragment plotFragment = new PlotFragment();
     mFragments[FRAGMENT_INDEX_PLOT] = plotFragment;
     mRealTimePositionVelocityCalculator.setPlotFragment(plotFragment);
+
+    MeasFragment measFragment = new MeasFragment();
+    measFragment.SetMeasLogger(mMeasLogger);
+    mFragments[FRAGMENT_INDEX_MEAS] = measFragment;
+
 
 
     // The viewpager that will host the section contents.

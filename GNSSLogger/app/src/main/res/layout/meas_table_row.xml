@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableRow xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+    <TextView
+        android:text="@string/sv"
+        android:tag="getSvid"
+        android:typeface="monospace"
+        android:gravity="end"
+        android:textAlignment="gravity"
+        android:padding="2dip"/>
+
+    <TextView
+        android:text="@string/c_no"
+        android:tag="getCn0DbHz"
+        android:typeface="monospace"
+        android:gravity="end"
+        android:textAlignment="gravity"
+        android:padding="2dip"/>
+
+    <TextView
+        android:text="@string/rcvd_tx_time"
+        android:tag="getReceivedSvTimeNanos"
+        android:typeface="monospace"
+        android:gravity="end"
+        android:textAlignment="gravity"
+        android:padding="2dip"/>
+
+    <TextView
+        android:text="@string/unc"
+        android:tag="getReceivedSvTimeUncertaintyNanos"
+        android:typeface="monospace"
+        android:gravity="end"
+        android:textAlignment="gravity"
+        android:padding="2dip"/>
+
+    <TextView
+        android:text="@string/rate_ppb"
+        android:tag="getPseudorangeRateMetersPerSecond"
+        android:typeface="monospace"
+        android:gravity="end"
+        android:textAlignment="gravity"
+        android:padding="2dip"/>
+
+    <TextView
+        android:text="@string/unc_ppb"
+        android:tag="getPseudorangeRateUncertaintyMetersPerSecond"
+        android:typeface="monospace"
+        android:gravity="end"
+        android:textAlignment="gravity"
+        android:padding="2dip"/>
+
+</TableRow>

@@ -11,6 +11,7 @@
     <string name="title_device">Device</string>
     <string name="title_wls">WLS</string>
     <string name="title_plot">Plot</string>
+    <string name="title_meas">Meas</string>
 
     <string name="location_label">Location</string>
     <string name="measurements_label">Measurements</string>
@@ -38,8 +39,8 @@
     <string name="timer_reset">Reset</string>
     <string name="timer_cancel">Cancel</string>
     <string name="timer_display">Time Remaining</string>
-    <string name="start_message">Starting log...</string>
-    <string name="stop_message">Sending file...</string>
+    <string name="start_message">Starting log…</string>
+    <string name="stop_message">Sending file…</string>
     <string name="longitude_in_degrees">Longitude in decimal degrees</string>
     <string name="ground_solution_mode">Ground Truth Mode:</string>
     <string name="please_select_ground_truth_mode">Please Select Ground Truth Mode</string>
@@ -57,6 +58,12 @@
     <string name="satellite_number_sum_hint">Total Number of Visible Satellites:
         <xliff:g id="totalNumber">%d</xliff:g></string>
     <string name="remote_control">Remote Control</string>
+    <string name="sv">SV</string>
+    <string name="c_no">C/No</string>
+    <string name="rcvd_tx_time">Rcvd Tx Time</string>
+    <string name="unc">unc</string>
+    <string name="rate_ppb">Rate ppb</string>
+    <string name="unc_ppb">unc ppb</string>
     <string-array name="constellation_arrays">
         <item>All</item>
         <item>GPS</item>
